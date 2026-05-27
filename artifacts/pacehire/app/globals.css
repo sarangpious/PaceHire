@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg: #0a0f1e;
+  --color-surface: #111827;
+  --color-surface-2: #1f2937;
+  --color-border: #1e3a5f;
+  --color-brand: #1A56DB;
+  --color-brand-light: #3b82f6;
+  --color-text: #f1f5f9;
+  --color-text-muted: #94a3b8;
+  --color-green: #22c55e;
+  --color-amber: #f59e0b;
+  --color-red: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
