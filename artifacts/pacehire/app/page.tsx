@@ -1,64 +1,12 @@
-'use client'
-
-import { useState, useEffect } from 'react'
 import { Clock, Zap, MessageCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import LandingNavbar from '@/app/components/LandingNavbar'
+import GoogleSignInButton from '@/app/components/GoogleSignInButton'
 
 export default function HomePage() {
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  async function signInWithGoogle() {
-    const supabase = createClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${siteUrl}/auth/callback`,
-      },
-    })
-  }
-
   return (
     <div className="animate-page-in min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
 
-      {/* ── Navbar ──────────────────────────────────────────────────── */}
-      <header
-        className={`sticky top-0 z-50 flex items-center justify-between px-6 py-4 transition-all duration-200 ${
-          scrolled ? 'border-b' : ''
-        }`}
-        style={
-          scrolled
-            ? {
-                borderColor: 'var(--color-border)',
-                backgroundColor: 'rgba(10, 15, 30, 0.95)',
-                backdropFilter: 'blur(8px)',
-              }
-            : { backgroundColor: 'transparent' }
-        }
-      >
-        <span className="text-xl font-bold" style={{ color: 'var(--color-brand)' }}>
-          PaceHire
-        </span>
-        <button
-          onClick={signInWithGoogle}
-          className="rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
-          style={{ borderColor: 'var(--color-brand)', color: 'var(--color-brand)' }}
-          onMouseEnter={e => {
-            ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgba(26,86,219,0.1)'
-          }}
-          onMouseLeave={e => {
-            ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'
-          }}
-        >
-          Sign in with Google
-        </button>
-      </header>
+      <LandingNavbar />
 
       {/* ── Hero ────────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-4xl px-6 pb-24 pt-24 text-center">
@@ -73,33 +21,12 @@ export default function HomePage() {
         </p>
 
         <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-          <button
-            onClick={signInWithGoogle}
-            className="rounded-lg px-6 py-3 text-sm font-semibold text-white transition-colors"
-            style={{ backgroundColor: 'var(--color-brand)' }}
-            onMouseEnter={e => {
-              ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-brand-light)'
-            }}
-            onMouseLeave={e => {
-              ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-brand)'
-            }}
-          >
-            Sign in with Google
-          </button>
+          <GoogleSignInButton variant="primary" />
           <a
             href="/session/demo"
             className="rounded-lg border px-6 py-3 text-sm font-semibold transition-colors"
             style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-            onMouseEnter={e => {
-              const el = e.currentTarget as HTMLAnchorElement
-              el.style.borderColor = 'var(--color-brand)'
-              el.style.color = 'var(--color-brand)'
-            }}
-            onMouseLeave={e => {
-              const el = e.currentTarget as HTMLAnchorElement
-              el.style.borderColor = 'var(--color-border)'
-              el.style.color = 'var(--color-text)'
-            }}
+            onMouseEnter={undefined}
           >
             Try a demo session
           </a>
