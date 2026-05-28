@@ -1,0 +1,46 @@
+Build the landing page at app/page.tsx for PaceHire. This is a dark-themed, professional SaaS landing page.
+
+Design requirements:
+- Background: #0a0f1e
+- Use the CSS variables already defined in globals.css
+- Clean, spacious layout. No clutter. Looks like a serious B2B tool.
+- Font: use Inter from Google Fonts (add to layout.tsx)
+
+Sections to build:
+
+1. NAVBAR
+- Left: "PaceHire" wordmark in brand blue (#1A56DB), bold
+- Right: "Sign in with Google" button (outlined, not filled)
+- Sticky, with a subtle border-bottom on scroll
+
+2. HERO
+- Headline (large): "Run interviews that finish on time. Every time."
+- Subheadline: "PaceHire gives interviewers a structured pacing layer — visual countdowns, section timers, and live alerts. No more rushed endings or overrun loops."
+- Two CTAs side by side:
+  - Primary (filled blue): "Sign in with Google"
+  - Secondary (outlined): "Try a demo session"
+- Below CTAs: small grey text: "Free to start. No credit card required."
+
+3. PROBLEM SECTION
+- Heading: "Interviews fail on time, not content."
+- Three cards side by side showing common pacing problems:
+  Card 1: "Intros run too long" — icon: clock
+  Card 2: "Technical sections get rushed" — icon: zap
+  Card 3: "Candidate questions get skipped" — icon: message-circle
+- Each card: dark surface background, subtle border, icon in brand blue
+
+4. HOW IT WORKS
+- Heading: "How PaceHire works"
+- Three numbered steps in a row:
+  Step 1: "Build your template" — set sections and time per section
+  Step 2: "Launch the session" — fullscreen pacing mode begins instantly
+  Step 3: "Stay on track" — color-coded alerts guide you through
+
+5. FOOTER
+- Simple one-line footer: "PaceHire · Built for structured hiring"
+
+Auth behavior:
+- "Sign in with Google" buttons call signInWithOAuth from Supabase with provider: 'google' and redirectTo: process.env.NEXT_PUBLIC_SITE_URL + '/auth/callback'
+- "Try a demo session" navigates to /session/demo
+
+Add NEXT_PUBLIC_SITE_URL to .env.local.example.
