@@ -1,48 +1,38 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+const SUPABASE_URL = 'https://hgvrhifzxqjvrdhjwhan.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhndnJoaWZ6eHFqdnJkaGp3aGFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4Nzc3ODQsImV4cCI6MjA5NTQ1Mzc4NH0.XPsJRbAE13i200dFwU17IhhfYw2MlXI1gSsGdHXccC8'
+const SITE_URL = 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+
+  console.log('[callback] code received:', !!code)
 
   if (code) {
     const cookieStore = await cookies()
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          },
+    const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          )
         },
-      }
-    )
-
-    console.log('[callback] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-    console.log('[callback] ANON_KEY length:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length)
-    console.log('[callback] ANON_KEY first 20:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20))
+      },
+    })
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
+    console.log('[callback] exchange error:', error)
 
-    if (!error) {
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
-      return NextResponse.redirect(`${siteUrl}${next}`)
+    if (error) {
+      return NextResponse.redirect(`${SITE_URL}/?error=auth&detail=${encodeURIComponent(error.message)}`)
     }
-
-    console.error('[auth/callback] exchangeCodeForSession error:', error.message)
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
-    return NextResponse.redirect(`${siteUrl}/?error=auth&detail=${encodeURIComponent(error.message)}`)
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
-  return NextResponse.redirect(`${siteUrl}/?error=auth&detail=no_code`)
+  return NextResponse.redirect(`${SITE_URL}/dashboard`)
 }
