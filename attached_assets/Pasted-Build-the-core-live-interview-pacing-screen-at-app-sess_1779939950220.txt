@@ -1,0 +1,54 @@
+Build the core live interview pacing screen at app/session/[templateId]/page.tsx.
+
+This is the most important screen in the app. It must be distraction-free, calm, and glanceable.
+
+Also handle /session/demo which loads a hardcoded demo template (no auth required):
+Demo template: "Engineering Interview — 45 min" with sections:
+Introduction (5 min), Resume Discussion (10 min), Technical Questions (20 min), Candidate Questions (5 min), Wrap-Up (5 min)
+
+SCREEN LAYOUT (fullscreen, dark background #0a0f1e):
+
+TOP BAR (small, unobtrusive):
+- Left: template name
+- Right: total time remaining (counting down from total duration)
+- A "fullscreen" toggle button (Fullscreen icon from lucide-react)
+
+HERO CENTER:
+- Current section name — large, white, bold (text-4xl or larger)
+- Countdown timer for current section — very large monospaced numerals (text-8xl), format MM:SS
+- Progress arc or progress bar below the timer showing % of current section elapsed
+
+PACING STATE COLORS (applied to the progress bar and a subtle background glow):
+- Green (#22c55e): more than 40% of section time remaining
+- Amber (#f59e0b): 10–40% remaining
+- Red (#ef4444): less than 10% remaining or overrun
+- When in overrun: timer counts UP from 00:00 in red, showing how far over the interviewer is
+
+BELOW HERO:
+- "Up next:" label + next section name and duration (if not last section)
+
+BOTTOM CONTROLS:
+- Pause / Resume button
+- "Extend +1 min" button
+- "Extend +2 min" button
+- "Next Section →" button
+- All buttons are subtle (outlined, not filled) so they don't distract
+
+TRANSITIONS:
+- When a section ends: play a short beep (use the Web Audio API to generate a simple 440hz tone for 200ms — no audio file needed)
+- Smooth fade transition to next section name
+
+STATE MANAGEMENT:
+Use React useState and useEffect. Track:
+- currentSectionIndex
+- secondsRemaining (counts down)
+- isPaused
+- isOverrun
+- sectionStartTime (for summary)
+- actualSectionTimes array (record how long each section actually took)
+
+COMPLETION:
+When the last section ends, navigate to /session/[templateId]/summary and pass the session results via sessionStorage.
+
+AUDIO:
+The beep must be generated via Web Audio API (no external files). Add a sound toggle button (Volume2 / VolumeX icon) in the top bar. Default: sound ON.
