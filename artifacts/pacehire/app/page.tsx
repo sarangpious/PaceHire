@@ -24,7 +24,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
+    <div className="animate-page-in min-h-screen" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)' }}>
 
       {/* ── Navbar ──────────────────────────────────────────────────── */}
       <header
@@ -71,7 +71,7 @@ export default function HomePage() {
           and live alerts. No more rushed endings or overrun loops.
         </p>
 
-        <div className="mb-4 flex items-center justify-center gap-4">
+        <div className="mb-4 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <button
             onClick={signInWithGoogle}
             className="rounded-lg px-6 py-3 text-sm font-semibold text-white transition-colors"

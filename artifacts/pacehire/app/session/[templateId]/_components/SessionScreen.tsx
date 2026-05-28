@@ -80,6 +80,11 @@ export default function SessionScreen({ template }: Props) {
   const [fade, setFade] = useState(true)
   const [sectionResults, setSectionResults] = useState<SectionResult[]>([])
 
+  // Compact (PiP) mode
+  const [isCompact, setIsCompact] = useState(false)
+  const [pipPos, setPipPos] = useState<{ x: number; y: number } | null>(null)
+  const pipDragRef = useRef({ active: false, ox: 0, oy: 0 })
+
   // Record when the session started (ISO string, set once on mount)
   const sessionStartRef = useRef(new Date().toISOString())
 
@@ -145,6 +150,27 @@ export default function SessionScreen({ template }: Props) {
     const onChange = () => setIsFullscreen(!!document.fullscreenElement)
     document.addEventListener('fullscreenchange', onChange)
     return () => document.removeEventListener('fullscreenchange', onChange)
+  }, [])
+
+  // ── PiP init + drag ─────────────────────────────────────────────
+  useEffect(() => {
+    setPipPos({ x: window.innerWidth - 308, y: window.innerHeight - 220 })
+  }, [])
+
+  useEffect(() => {
+    function onMove(e: MouseEvent) {
+      if (!pipDragRef.current.active) return
+      const x = Math.max(0, Math.min(window.innerWidth - 284, e.clientX - pipDragRef.current.ox))
+      const y = Math.max(0, Math.min(window.innerHeight - 180, e.clientY - pipDragRef.current.oy))
+      setPipPos({ x, y })
+    }
+    function onUp() { pipDragRef.current.active = false }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    return () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
   }, [])
 
   function toggleFullscreen() {
@@ -214,9 +240,10 @@ export default function SessionScreen({ template }: Props) {
   // ── Render ───────────────────────────────────────────────────────
 
   return (
+    <>
     <div
       className="relative flex min-h-screen select-none flex-col"
-      style={{ backgroundColor: '#0a0f1e', color: '#f1f5f9' }}
+      style={{ backgroundColor: '#0a0f1e', color: '#f1f5f9', display: isCompact ? 'none' : 'flex' }}
     >
       {/* Ambient glow — color reacts to pacing state */}
       <div
@@ -245,6 +272,16 @@ export default function SessionScreen({ template }: Props) {
             title={soundEnabled ? 'Mute beep' : 'Enable beep'}
           >
             {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </button>
+
+          {/* Compact toggle — hidden on mobile */}
+          <button
+            onClick={() => setIsCompact(true)}
+            className="hidden rounded p-1.5 sm:block"
+            style={{ color: '#64748b' }}
+            title="Compact mode"
+          >
+            <Minimize2 className="h-4 w-4" />
           </button>
 
           {/* Fullscreen toggle */}
@@ -295,9 +332,8 @@ export default function SessionScreen({ template }: Props) {
             </p>
           )}
           <span
-            className="font-mono font-bold leading-none tracking-tight tabular-nums"
+            className="session-timer font-mono font-bold leading-none tracking-tight tabular-nums"
             style={{
-              fontSize: 'clamp(5rem, 14vw, 9rem)',
               color: isOverrun ? '#ef4444' : '#f1f5f9',
               transition: 'color 0.6s ease',
             }}
@@ -384,6 +420,74 @@ export default function SessionScreen({ template }: Props) {
         </div>
       )}
     </div>
+
+    {/* ── PiP compact card ────────────────────────────────────────── */}
+    {isCompact && pipPos && (
+      <div
+        className="fixed z-50 w-[280px] overflow-hidden rounded-2xl shadow-2xl"
+        style={{
+          left: pipPos.x,
+          top: pipPos.y,
+          backgroundColor: '#111827',
+          border: '1px solid #1e3a5f',
+          cursor: 'grab',
+          userSelect: 'none',
+        }}
+        onMouseDown={(e) => {
+          pipDragRef.current = {
+            active: true,
+            ox: e.clientX - pipPos.x,
+            oy: e.clientY - pipPos.y,
+          }
+          e.preventDefault()
+        }}
+      >
+        {/* Pacing color bar */}
+        <div
+          style={{
+            height: 4,
+            backgroundColor: pacingColor,
+            transition: 'background-color 0.6s ease',
+          }}
+        />
+        {/* Card body */}
+        <div className="px-3 pb-3 pt-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-2">
+            <span className="truncate text-xs font-medium" style={{ color: '#94a3b8' }}>
+              {currentSection.name}
+            </span>
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => setIsCompact(false)}
+              className="flex-shrink-0 rounded p-0.5"
+              style={{ color: '#64748b' }}
+              title="Expand"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {isOverrun && (
+            <p className="mb-0.5 text-xs font-bold" style={{ color: '#ef4444' }}>
+              OVERRUN +
+            </p>
+          )}
+          <p
+            className="font-mono font-bold tabular-nums"
+            style={{
+              fontSize: '2.5rem',
+              lineHeight: 1,
+              color: isOverrun ? '#ef4444' : '#f1f5f9',
+            }}
+          >
+            {formatTime(secondsRemaining)}
+          </p>
+          <p className="mt-1.5 text-xs" style={{ color: '#475569' }}>
+            Section {sectionIndex + 1} of {sections.length}
+          </p>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 

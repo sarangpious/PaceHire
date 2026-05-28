@@ -27,3 +27,23 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
 }
+
+@keyframes page-fade-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-page-in {
+  animation: page-fade-in 0.3s ease-out both;
+}
+
+/* Session timer — responsive font size */
+.session-timer {
+  font-size: clamp(5rem, 14vw, 9rem);
+}
+
+@media (max-width: 640px) {
+  .session-timer {
+    font-size: 3.75rem; /* text-6xl */
+  }
+}

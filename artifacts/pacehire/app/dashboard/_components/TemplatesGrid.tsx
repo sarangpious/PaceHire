@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Pencil, Trash2, Play } from 'lucide-react'
+import { Pencil, Trash2, Play, Link as LinkIcon } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 type Section = {
@@ -28,6 +28,20 @@ type Props = {
 export default function TemplatesGrid({ initialTemplates }: Props) {
   const [templates, setTemplates] = useState<Template[]>(initialTemplates)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  function handleCopyLink(id: string) {
+    const origin =
+      (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_URL) ||
+      window.location.origin
+    navigator.clipboard
+      .writeText(`${origin}/session/${id}`)
+      .then(() => {
+        setCopiedId(id)
+        setTimeout(() => setCopiedId(null), 2000)
+      })
+      .catch(() => {})
+  }
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return
@@ -92,6 +106,27 @@ export default function TemplatesGrid({ initialTemplates }: Props) {
             <div className="flex items-start justify-between gap-2">
               <h3 className="flex-1 font-semibold leading-snug">{template.name}</h3>
               <div className="flex items-center gap-0.5">
+                {/* Copy session link */}
+                <div className="relative">
+                  {copiedId === template.id && (
+                    <div
+                      className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs"
+                      style={{ backgroundColor: '#1f2937', color: '#22c55e', zIndex: 10 }}
+                    >
+                      Copied!
+                    </div>
+                  )}
+                  <button
+                    onClick={() => handleCopyLink(template.id)}
+                    className="rounded p-1.5 transition-colors"
+                    style={{ color: 'var(--color-text-muted)' }}
+                    title="Copy session link"
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}
+                  >
+                    <LinkIcon className="h-3.5 w-3.5" />
+                  </button>
+                </div>
                 <Link
                   href={`/dashboard/templates/${template.id}/edit`}
                   className="rounded p-1.5 transition-colors"
