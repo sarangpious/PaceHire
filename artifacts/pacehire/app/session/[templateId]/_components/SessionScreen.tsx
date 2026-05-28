@@ -80,6 +80,9 @@ export default function SessionScreen({ template }: Props) {
   const [fade, setFade] = useState(true)
   const [sectionResults, setSectionResults] = useState<SectionResult[]>([])
 
+  // Record when the session started (ISO string, set once on mount)
+  const sessionStartRef = useRef(new Date().toISOString())
+
   // Refs to avoid stale closures inside intervals
   const soundRef = useRef(soundEnabled)
   soundRef.current = soundEnabled
@@ -167,15 +170,23 @@ export default function SessionScreen({ template }: Props) {
 
     if (sectionIndex === sections.length - 1) {
       // Last section — write summary and navigate
-      const summary = {
-        template_id: template.id,
-        template_name: template.name,
-        section_results: newResults,
-        total_planned_minutes: template.total_duration,
-        completed_at: new Date().toISOString(),
+      const totalActualSeconds = newResults.reduce((sum, r) => sum + r.actual_seconds, 0)
+      const payload = {
+        templateId: template.id,
+        templateName: template.name,
+        plannedDuration: template.total_duration ?? 0,
+        actualDuration: totalActualSeconds,
+        startedAt: sessionStartRef.current,
+        sections: newResults.map(r => ({
+          id: r.section_id,
+          name: r.name,
+          plannedSeconds: r.planned_seconds,
+          actualSeconds: r.actual_seconds,
+          skipped: r.skipped,
+        })),
       }
       try {
-        sessionStorage.setItem('pace_session_summary', JSON.stringify(summary))
+        sessionStorage.setItem('pacehire_session_result', JSON.stringify(payload))
       } catch {}
       router.push(`/session/${template.id}/summary`)
       return
