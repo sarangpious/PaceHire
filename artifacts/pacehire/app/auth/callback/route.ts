@@ -30,9 +30,11 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
+      return NextResponse.redirect(`${siteUrl}${next}`)
     }
   }
 
-  return NextResponse.redirect(`${origin}/?error=auth`)
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
+  return NextResponse.redirect(`${siteUrl}/?error=auth`)
 }

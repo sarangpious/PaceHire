@@ -15,10 +15,11 @@ export default function HomePage() {
 
   async function signInWithGoogle() {
     const supabase = createClient()
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: process.env.NEXT_PUBLIC_SITE_URL + '/auth/callback',
+        redirectTo: `${siteUrl}/auth/callback`,
       },
     })
   }
