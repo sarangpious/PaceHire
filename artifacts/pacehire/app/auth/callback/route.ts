@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
       }
     )
 
+    console.log('[callback] SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('[callback] ANON_KEY length:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length)
+    console.log('[callback] ANON_KEY first 20:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20))
+
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
