@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function GoogleSignInButton({ variant = 'primary', label = 'Sign in with Google' }: { variant?: 'primary' | 'outline', label?: string }) {
   const handleClick = async () => {
+    console.log('BUTTON CLICKED')
     try {
       const supabase = createClient()
       console.log('Supabase client created:', !!supabase)
@@ -25,7 +26,7 @@ export default function GoogleSignInButton({ variant = 'primary', label = 'Sign 
 
       if (data?.url) {
         console.log('Redirecting to:', data.url)
-        window.location.href = data.url
+        window.open(data.url, '_top')
       } else {
         alert('No redirect URL returned from Supabase. Check console.')
       }
@@ -35,10 +36,12 @@ export default function GoogleSignInButton({ variant = 'primary', label = 'Sign 
     }
   }
 
+  console.log('GoogleSignInButton rendering, variant:', variant)
+
   if (variant === 'outline') {
     return (
       <button
-        onClick={handleClick}
+        onClick={(e) => { console.log('RAW CLICK EVENT', e); handleClick(); }}
         className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-500 hover:bg-blue-600/10 transition-colors"
       >
         {label}
@@ -48,7 +51,7 @@ export default function GoogleSignInButton({ variant = 'primary', label = 'Sign 
 
   return (
     <button
-      onClick={handleClick}
+      onClick={(e) => { console.log('RAW CLICK EVENT', e); handleClick(); }}
       className="rounded-lg bg-blue-600 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
     >
       {label}
