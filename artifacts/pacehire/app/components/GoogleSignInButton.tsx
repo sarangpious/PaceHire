@@ -26,7 +26,12 @@ export default function GoogleSignInButton({ variant = 'primary', label = 'Sign 
 
       if (data?.url) {
         console.log('Redirecting to:', data.url)
-        window.location.replace(data.url)
+        const a = document.createElement('a')
+        a.href = data.url
+        a.rel = 'noopener noreferrer'
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
       } else {
         alert('No redirect URL returned from Supabase. Check console.')
       }
