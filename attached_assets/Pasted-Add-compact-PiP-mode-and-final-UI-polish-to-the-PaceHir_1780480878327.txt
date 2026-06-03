@@ -1,0 +1,44 @@
+Add compact/PiP mode and final UI polish to the PaceHire app.
+
+1. COMPACT MODE on the live session screen (app/session/[templateId]/page.tsx):
+
+Add a "Compact" toggle button in the top bar (Minimize2 icon from lucide-react).
+
+When compact mode is active, the session screen collapses to a small floating card (fixed position, bottom-right corner, 280px wide):
+- Current section name (truncated, one line)
+- Large countdown timer (monospaced)
+- Pacing state color bar at the top of the card
+- "Expand" button (Maximize2 icon) to return to fullscreen
+
+The compact card should be draggable — user can drag it to any corner of the screen.
+Implement drag using mousedown/mousemove/mouseup events (no library).
+
+2. GLOBAL POLISH
+
+Apply these polish items across all pages:
+
+a. Loading states: add a simple loading skeleton (grey animated pulse) wherever data is fetched from Supabase — templates grid on dashboard, template load on session screen.
+
+b. Error boundaries: add a basic error UI for failed Supabase fetches — "Something went wrong. Try refreshing." with a Refresh button.
+
+c. Mobile responsiveness:
+- Landing page hero: stack CTAs vertically on mobile
+- Dashboard: single column template grid on mobile
+- Session screen: reduce timer font size on mobile (text-6xl instead of text-8xl)
+- Compact mode is disabled on mobile (hide the compact toggle)
+
+d. Page transitions: add a simple opacity fade-in (using Tailwind's animate-fade or a CSS keyframe) when pages load.
+
+e. Favicon and metadata: in app/layout.tsx, add:
+- title: "PaceHire — Structured Interview Pacing"
+- description: "Run time-balanced interviews with visual pacing guidance."
+- A simple emoji favicon: ⏱️ (use as emoji in <link rel="icon" href="data:...">)
+
+f. 404 page: create app/not-found.tsx with a minimal "Page not found" message and a "Go to Dashboard" link.
+
+3. TEMPLATE SHARE LINK (basic)
+
+On each template card on the dashboard, add a "Copy Link" icon button.
+When clicked: copy https://[NEXT_PUBLIC_SITE_URL]/session/[templateId] to clipboard and show a brief "Link copied!" tooltip for 2 seconds.
+
+This allows interviewers to share the pacing session link directly with panelists or save it for future use.

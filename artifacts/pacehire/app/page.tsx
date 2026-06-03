@@ -26,7 +26,6 @@ export default function HomePage() {
             href="/session/demo"
             className="rounded-lg border px-6 py-3 text-sm font-semibold transition-colors"
             style={{ borderColor: 'var(--color-border)', color: 'var(--color-text)' }}
-            onMouseEnter={undefined}
           >
             Try a demo session
           </a>

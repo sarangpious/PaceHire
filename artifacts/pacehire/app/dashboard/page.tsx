@@ -52,7 +52,7 @@ export default async function DashboardPage() {
     'there'
 
   return (
-    <div style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)', minHeight: '100vh' }}>
+    <div className="animate-page-in" style={{ backgroundColor: 'var(--color-bg)', color: 'var(--color-text)', minHeight: '100vh' }}>
       <DashboardHeader
         email={profile?.email ?? user.email ?? ''}
         avatarUrl={profile?.avatar_url ?? null}
