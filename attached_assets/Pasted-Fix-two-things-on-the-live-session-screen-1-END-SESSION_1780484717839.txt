@@ -1,0 +1,45 @@
+Fix two things on the live session screen:
+
+1. END SESSION BUTTON
+The X button in the top left exists but is too subtle. Replace it with a clearly visible "End Session" button in the top left that:
+- Shows as a red-tinted outlined button with an X icon and the text "End Session"
+- On click shows a confirmation dialog: "End this session early? Your progress so far will be saved."
+- Two buttons in dialog: "Cancel" and "End & Save"
+- On confirm: saves partial session data to Supabase with ended_at = now(), then redirects to /session/[id]/scorecard
+
+2. REPLACE COMPACT MODE WITH A REAL POPUP WINDOW
+The current compact mode (minimized div in corner) is not useful because it disappears when the interviewer switches browser tabs to join their Zoom/Meet call.
+
+Replace the compact/minimize button behavior with this:
+
+When the interviewer clicks the minimize/compact button (or a new "Pop Out" button with an external link icon), open a real separate browser popup window using:
+
+const popup = window.open(
+  '',
+  'pacehire_pip',
+  'width=300,height=180,top=20,right=20,resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no,alwaysOnTop=yes'
+)
+
+This popup window should show a self-contained HTML page with:
+- Dark background (#0a0f1e)
+- Section name at top (small, muted)
+- Large countdown timer in white monospaced font (font-size: 64px)
+- A thin color bar at the very top of the window (green/amber/red based on pacing state)
+- Section progress indicator (X of Y)
+- No other controls
+
+The popup should sync with the main session window every second by writing state to localStorage:
+- Key: 'pacehire_pip_state'
+- Value: JSON.stringify({ sectionName, timeRemaining, totalRemaining, pacingState, sectionIndex, totalSections, isPaused })
+
+The popup reads from localStorage every second and updates its display.
+
+The popup should have this complete self-contained HTML written into it via popup.document.write() — include all CSS inline, and a setInterval that reads localStorage('pacehire_pip_state') every 500ms and updates the display.
+
+When the main session window unloads or the session ends, set localStorage('pacehire_pip_state') to null and the popup should show "Session ended" and close itself after 3 seconds.
+
+Add a "Pop Out Timer" button to the top bar of the main session screen (external link icon). Keep the existing fullscreen button. Remove the old compact/minimize div-based mode entirely.
+
+The main session screen should still work fully on its own — the popup is purely an optional floating reference for the interviewer.
+
+Restart the dev server.
