@@ -62,7 +62,6 @@ function playBeep(ctx: AudioContext) {
 }
 
 // ── Popup HTML ─────────────────────────────────────────────────────────────
-// Self-contained; reads localStorage('pacehire_pip_state') every 500 ms
 
 const POPUP_HTML = `<!DOCTYPE html>
 <html>
@@ -132,9 +131,11 @@ setInterval(function(){
 
 interface Props {
   template: Template
+  sessionId: string | null
+  candidateInfo: { name: string; role: string } | null
 }
 
-export default function SessionScreen({ template }: Props) {
+export default function SessionScreen({ template, sessionId, candidateInfo }: Props) {
   const router = useRouter()
 
   const sections: Section[] = [...template.sections].sort((a, b) => a.order - b.order)
@@ -205,7 +206,7 @@ export default function SessionScreen({ template }: Props) {
     } catch {}
   }, [secondsRemaining, sectionIndex, isPaused])
 
-  // ── Clear pip state + close popup on unmount ───────────────────────
+  // ── Cleanup on unmount ─────────────────────────────────────────────
 
   useEffect(() => {
     return () => {
@@ -291,10 +292,17 @@ export default function SessionScreen({ template }: Props) {
   }
 
   function finishSession(results: SectionResult[]) {
-    try { sessionStorage.setItem('pacehire_session_result', JSON.stringify(buildPayload(results))) } catch {}
+    try {
+      sessionStorage.setItem('pacehire_session_result', JSON.stringify(buildPayload(results)))
+    } catch {}
     try { localStorage.setItem('pacehire_pip_state', 'null') } catch {}
     popupRef.current?.close()
-    router.push(`/session/${template.id}/summary`)
+    // Navigate to scorecard if we have a pre-created session, else summary (demo)
+    if (sessionId) {
+      router.push(`/session/${sessionId}/scorecard`)
+    } else {
+      router.push(`/session/${template.id}/summary`)
+    }
   }
 
   function advance(skipped = false) {
@@ -360,7 +368,7 @@ export default function SessionScreen({ template }: Props) {
 
       {/* ── Top bar ─────────────────────────────────────────────── */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4">
-        {/* Left: End Session button + template name */}
+        {/* Left: End Session + session context */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowExitDialog(true)}
@@ -383,9 +391,21 @@ export default function SessionScreen({ template }: Props) {
             End Session
           </button>
 
-          <span className="hidden max-w-[200px] truncate text-sm font-medium sm:block" style={{ color: '#94a3b8' }}>
-            {template.name}
-          </span>
+          {/* Context: candidate + role OR template name */}
+          <div className="hidden sm:block">
+            {candidateInfo ? (
+              <span className="text-sm font-medium" style={{ color: '#f1f5f9' }}>
+                {candidateInfo.name}
+                {candidateInfo.role && (
+                  <span style={{ color: '#64748b' }}> · {candidateInfo.role}</span>
+                )}
+              </span>
+            ) : (
+              <span className="max-w-[200px] truncate text-sm font-medium" style={{ color: '#94a3b8' }}>
+                {template.name}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Right: controls */}
@@ -404,7 +424,7 @@ export default function SessionScreen({ template }: Props) {
             {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
 
-          {/* Pop-out timer — hidden on mobile */}
+          {/* Pop-out timer */}
           <button
             onClick={openPopup}
             className="hidden rounded p-1.5 sm:block"
@@ -525,7 +545,7 @@ export default function SessionScreen({ template }: Props) {
         <ControlButton
           onClick={() => advance(false)}
           icon={<SkipForward className="h-4 w-4" />}
-          label={sectionIndex === sections.length - 1 ? 'End Session' : 'Next Section →'}
+          label={sectionIndex === sections.length - 1 ? 'Finish Session' : 'Next Section →'}
           prominent
         />
       </div>
@@ -562,19 +582,15 @@ export default function SessionScreen({ template }: Props) {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowExitDialog(false)}
-                className="rounded-lg border px-4 py-2 text-sm font-medium transition-colors"
+                className="rounded-lg border px-4 py-2 text-sm font-medium"
                 style={{ borderColor: '#1e3a5f', color: '#94a3b8' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#334155')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#1e3a5f')}
               >
                 Cancel
               </button>
               <button
                 onClick={confirmExit}
-                className="rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
                 style={{ backgroundColor: '#ef4444' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#dc2626')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#ef4444')}
               >
                 End &amp; Save
               </button>

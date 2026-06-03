@@ -1,0 +1,74 @@
+Expand PaceHire with candidate tracking and post-session scorecards. Here's what to build:
+
+1. DATABASE CHANGES
+Do NOT run any SQL. Just update supabase/schema.sql with the new tables and columns so it stays in sync. I will run the SQL manually.
+
+2. SESSION START MODAL
+When user clicks "Start Session" on a template card, show a modal overlay before navigating to the session screen. Modal fields:
+- Candidate name (text input, required, placeholder: "e.g. Rahul Sharma")
+- Role being interviewed for (text input, required, placeholder: "e.g. Senior Backend Engineer")
+- Optional: Candidate email (text input, placeholder: "optional — for your records")
+- "Start Interview" button (primary blue, disabled until name and role are filled)
+- "Cancel" link to dismiss modal
+
+On submit: create a new session record in Supabase immediately with candidate_name, role_name, candidate_email, template_id, user_id, started_at = now(), then navigate to /session/[newSessionId].
+
+Show candidate name and role in the top bar of the live session screen: "Rahul Sharma · Senior Backend Engineer"
+
+3. POST-SESSION SCORECARD
+After session completes navigate to /session/[id]/scorecard instead of summary.
+
+Scorecard screen layout:
+- Header: "How did the interview go?" 
+- Candidate name and role shown below header
+- Section 1 — Overall rating: 5 large clickable stars, gold when selected
+- Section 2 — Recommendation: four large buttons in a 2x2 grid:
+  "Strong Yes" (green border + text), "Yes" (blue), "No" (amber), "Strong No" (red)
+  Selected state: filled background, unselected: outlined only
+- Section 3 — Notes text area: placeholder "Key observations, strengths, red flags, follow-up questions..."
+  Minimum height 120px
+- Bottom: "Save & View Summary" button (disabled until recommendation is selected)
+- Also a subtle "Skip for now" text link below the button that goes directly to summary without saving scorecard
+
+On save: update the session record in Supabase with overall_rating, recommendation, post_session_notes, ended_at = now(), then redirect to /session/[id]/summary.
+
+4. CANDIDATES VIEW at /dashboard/candidates
+- Fetch all sessions where user_id = current user, group by candidate_name + role_name combination
+- Show as a grid of cards, each card:
+  - Candidate name (bold, large)
+  - Role badge (small, muted)
+  - Last interviewed date
+  - Recommendation badge (color coded: green/blue/amber/red)
+  - Star rating display (read only)
+  - "View Details" button
+- Clicking View Details goes to /dashboard/candidates/[candidateId] showing all sessions for that candidate
+- Search bar at top filters by name or role in real time (client side filtering, no extra DB call)
+- Empty state: "No candidates yet. Start a session to track your first interview."
+
+5. ROLE PIPELINE VIEW at /dashboard/roles
+- Fetch all distinct role_name values from sessions for current user
+- Show each role as an expandable section
+- Inside each role: a table of all candidates interviewed for that role
+  Columns: Candidate Name | Date | Duration | Recommendation | Rating | Actions
+- "Compare" button appears when 2+ candidates exist for a role — shows a side by side comparison card with all their scores and recommendations
+- Empty state: "No roles yet. Candidate roles will appear here after your first session."
+
+6. DASHBOARD NAVIGATION
+Replace the current dashboard layout with a tab bar at the top:
+- Tab 1: "Templates" (existing content)
+- Tab 2: "Candidates" (new /dashboard/candidates content, rendered inline not separate page)
+- Tab 3: "Roles" (new /dashboard/roles content, rendered inline)
+
+Use URL query params to track active tab: /dashboard?tab=templates, /dashboard?tab=candidates, /dashboard?tab=roles. Default tab is templates.
+
+Keep Recent Sessions section at the bottom of the Templates tab only.
+
+7. CANDIDATE DETAIL PAGE at /dashboard/candidates/[sessionId]
+Show a full page for a candidate with:
+- Name, role, email at top
+- All interview sessions for this candidate (there may be multiple rounds)
+- Each session: date, template used, duration, pacing summary, recommendation, rating, notes
+- An "Edit Notes" button that opens an inline text editor to update post_session_notes
+- A print/export button that generates a clean printable view (use window.print() with a print-specific CSS class that hides navigation)
+
+Restart the dev server after all changes.

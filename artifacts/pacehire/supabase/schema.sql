@@ -33,17 +33,34 @@ create table if not exists public.templates (
 -- 3. sessions
 -- ---------------------------------------------------------------------------
 create table if not exists public.sessions (
-  id                uuid primary key default gen_random_uuid(),
-  user_id           uuid not null references public.profiles (id) on delete cascade,
-  template_id       uuid references public.templates (id) on delete set null,
-  template_snapshot jsonb,           -- full copy of template at session start
-  started_at        timestamptz,
-  ended_at          timestamptz,
-  planned_duration  integer,         -- in minutes
-  actual_duration   integer,         -- in seconds
-  section_results   jsonb,           -- [{ section_id, name, planned_seconds, actual_seconds, skipped }]
-  created_at        timestamptz not null default now()
+  id                  uuid primary key default gen_random_uuid(),
+  user_id             uuid not null references public.profiles (id) on delete cascade,
+  template_id         uuid references public.templates (id) on delete set null,
+  template_snapshot   jsonb,           -- full copy of template at session start
+  started_at          timestamptz,
+  ended_at            timestamptz,
+  planned_duration    integer,         -- in minutes
+  actual_duration     integer,         -- in seconds
+  section_results     jsonb,           -- [{ section_id, name, planned_seconds, actual_seconds, skipped }]
+  -- Candidate tracking
+  candidate_name      text,
+  role_name           text,
+  candidate_email     text,
+  -- Post-session scorecard
+  overall_rating      integer check (overall_rating between 1 and 5),
+  recommendation      text check (recommendation in ('strong_yes', 'yes', 'no', 'strong_no')),
+  post_session_notes  text,
+  created_at          timestamptz not null default now()
 );
+
+-- If you already applied the original schema, run these ALTER statements instead:
+--
+-- alter table public.sessions add column if not exists candidate_name     text;
+-- alter table public.sessions add column if not exists role_name          text;
+-- alter table public.sessions add column if not exists candidate_email    text;
+-- alter table public.sessions add column if not exists overall_rating     integer check (overall_rating between 1 and 5);
+-- alter table public.sessions add column if not exists recommendation     text check (recommendation in ('strong_yes', 'yes', 'no', 'strong_no'));
+-- alter table public.sessions add column if not exists post_session_notes text;
 
 -- ---------------------------------------------------------------------------
 -- Trigger: keep templates.updated_at current

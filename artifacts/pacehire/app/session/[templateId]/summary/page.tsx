@@ -23,6 +23,8 @@ type SessionResult = {
   actualDuration: number  // seconds
   startedAt: string       // ISO
   sections: SectionEntry[]
+  candidateName?: string
+  roleName?: string
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'guest'
@@ -66,6 +68,13 @@ function fmtDate(iso: string): string {
   })
 }
 
+const REC_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  strong_yes: { label: 'Strong Yes', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+  yes:        { label: 'Yes',        color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
+  no:         { label: 'No',         color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  strong_no:  { label: 'Strong No',  color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function SummaryPage() {
@@ -75,6 +84,11 @@ export default function SummaryPage() {
   const [data, setData] = useState<SessionResult | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [loading, setLoading] = useState(true)
+  const [scorecard, setScorecard] = useState<{
+    rating: number | null
+    recommendation: string | null
+    notes: string | null
+  } | null>(null)
   const savedRef = useRef(false)
 
   useEffect(() => {
@@ -89,7 +103,7 @@ export default function SummaryPage() {
       setData(result)
       setLoading(false)
 
-      // Auto-save to Supabase once
+      // Avoid duplicate saves
       if (savedRef.current) return
       savedRef.current = true
 
@@ -103,6 +117,19 @@ export default function SummaryPage() {
           return
         }
 
+        // If the URL param differs from the template ID stored in sessionStorage,
+        // the session was pre-created (modal flow). UPDATE instead of INSERT.
+        const isPreCreated =
+          templateId !== result!.templateId && templateId !== 'demo'
+
+        if (isPreCreated) {
+          // Session was already saved by the scorecard page — just clear and show.
+          try { sessionStorage.removeItem('pacehire_session_result') } catch {}
+          setSaveState('saved')
+          return
+        }
+
+        // Old / demo flow: INSERT a new session record
         const { error } = await supabase.from('sessions').insert({
           user_id: user.id,
           template_id: result!.templateId === 'demo' ? null : result!.templateId,
@@ -128,7 +155,7 @@ export default function SummaryPage() {
       return
     }
 
-    // 2. sessionStorage is empty — load historical session from Supabase by session ID
+    // 2. sessionStorage empty — load historical session from Supabase by session ID
     ;(async () => {
       const supabase = createClient()
       const { data: session } = await supabase
@@ -151,9 +178,21 @@ export default function SummaryPage() {
         actualDuration: session.actual_duration ?? 0,
         startedAt: session.started_at ?? session.ended_at ?? new Date().toISOString(),
         sections: (session.section_results as SectionEntry[]) ?? [],
+        candidateName: session.candidate_name ?? undefined,
+        roleName: session.role_name ?? undefined,
       }
       setData(historical)
       setSaveState('saved') // already persisted
+
+      // Load scorecard data if present
+      if (session.recommendation || session.overall_rating) {
+        setScorecard({
+          rating: session.overall_rating ?? null,
+          recommendation: session.recommendation ?? null,
+          notes: session.post_session_notes ?? null,
+        })
+      }
+
       setLoading(false)
     })()
   }, [templateId])
@@ -197,6 +236,7 @@ export default function SummaryPage() {
   const overallDiff = data.actualDuration - plannedSeconds
   const { label: diffLabel, color: diffColor } = fmtDiff(overallDiff)
   const isDemo = templateId === 'demo'
+  const rec = scorecard?.recommendation ? REC_LABELS[scorecard.recommendation] : null
 
   return (
     <div
@@ -217,10 +257,52 @@ export default function SummaryPage() {
           <p className="mt-1 text-lg font-medium" style={{ color: '#94a3b8' }}>
             {data.templateName}
           </p>
+          {(data.candidateName || data.roleName) && (
+            <p className="mt-1.5 text-base font-medium" style={{ color: '#cbd5e1' }}>
+              {data.candidateName}
+              {data.candidateName && data.roleName && (
+                <span style={{ color: '#475569' }}> · </span>
+              )}
+              {data.roleName}
+            </p>
+          )}
           <p className="mt-1 text-sm" style={{ color: '#475569' }}>
             {fmtDate(data.startedAt)}
           </p>
         </div>
+
+        {/* ── Scorecard summary ───────────────────────────────────── */}
+        {scorecard && (rec || scorecard.rating || scorecard.notes) && (
+          <div
+            className="mb-8 rounded-xl border p-5"
+            style={{ backgroundColor: '#111827', borderColor: '#1e3a5f' }}
+          >
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider" style={{ color: '#475569' }}>
+              Scorecard
+            </p>
+            <div className="flex flex-wrap items-center gap-4">
+              {scorecard.rating && (
+                <span style={{ color: '#f59e0b', fontSize: 18, letterSpacing: 2 }}>
+                  {'★'.repeat(scorecard.rating)}
+                  <span style={{ color: '#1e3a5f' }}>{'★'.repeat(5 - scorecard.rating)}</span>
+                </span>
+              )}
+              {rec && (
+                <span
+                  className="rounded-full px-3 py-1 text-sm font-semibold"
+                  style={{ backgroundColor: rec.bg, color: rec.color }}
+                >
+                  {rec.label}
+                </span>
+              )}
+            </div>
+            {scorecard.notes && (
+              <p className="mt-3 text-sm leading-relaxed" style={{ color: '#94a3b8' }}>
+                {scorecard.notes}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── Stats row ──────────────────────────────────────────── */}
         <div className="mb-8 grid grid-cols-3 gap-4">
@@ -257,70 +339,65 @@ export default function SummaryPage() {
         </div>
 
         {/* ── Section breakdown ───────────────────────────────────── */}
-        <div
-          className="mb-8 overflow-hidden rounded-xl border"
-          style={{ borderColor: '#1e3a5f', backgroundColor: '#111827' }}
-        >
-          {/* Table header */}
+        {data.sections.length > 0 && (
           <div
-            className="grid grid-cols-4 gap-4 border-b px-5 py-3 text-xs font-semibold uppercase tracking-wider"
-            style={{ borderColor: '#1e3a5f', color: '#475569' }}
+            className="mb-8 overflow-hidden rounded-xl border"
+            style={{ borderColor: '#1e3a5f', backgroundColor: '#111827' }}
           >
-            <span className="col-span-1">Section</span>
-            <span className="text-right">Planned</span>
-            <span className="text-right">Actual</span>
-            <span className="text-right">Difference</span>
-          </div>
+            {/* Table header */}
+            <div
+              className="grid grid-cols-4 gap-4 border-b px-5 py-3 text-xs font-semibold uppercase tracking-wider"
+              style={{ borderColor: '#1e3a5f', color: '#475569' }}
+            >
+              <span className="col-span-1">Section</span>
+              <span className="text-right">Planned</span>
+              <span className="text-right">Actual</span>
+              <span className="text-right">Difference</span>
+            </div>
 
-          {/* Rows */}
-          {data.sections.map((section, i) => {
-            const diff = section.actualSeconds - section.plannedSeconds
-            const rowColor = sectionRowColor(section)
-            const { label: secDiff } = fmtDiff(diff)
+            {/* Rows */}
+            {data.sections.map((section, i) => {
+              const diff = section.actualSeconds - section.plannedSeconds
+              const rowColor = sectionRowColor(section)
+              const { label: secDiff } = fmtDiff(diff)
 
-            return (
-              <div
-                key={section.id}
-                className={`grid grid-cols-4 gap-4 px-5 py-3.5 text-sm ${
-                  i < data.sections.length - 1 ? 'border-b' : ''
-                }`}
-                style={{ borderColor: '#1e3a5f' }}
-              >
-                {/* Name */}
-                <div className="col-span-1 flex items-center gap-2">
-                  <span
-                    className="h-2 w-2 flex-shrink-0 rounded-full"
-                    style={{ backgroundColor: rowColor }}
-                  />
-                  <span className="font-medium">{section.name}</span>
-                  {section.skipped && (
+              return (
+                <div
+                  key={section.id ?? i}
+                  className={`grid grid-cols-4 gap-4 px-5 py-3.5 text-sm ${
+                    i < data.sections.length - 1 ? 'border-b' : ''
+                  }`}
+                  style={{ borderColor: '#1e3a5f' }}
+                >
+                  <div className="col-span-1 flex items-center gap-2">
                     <span
-                      className="rounded px-1.5 py-0.5 text-xs"
-                      style={{ backgroundColor: '#1f2937', color: '#64748b' }}
-                    >
-                      Skipped
-                    </span>
-                  )}
+                      className="h-2 w-2 flex-shrink-0 rounded-full"
+                      style={{ backgroundColor: rowColor }}
+                    />
+                    <span className="font-medium">{section.name}</span>
+                    {section.skipped && (
+                      <span
+                        className="rounded px-1.5 py-0.5 text-xs"
+                        style={{ backgroundColor: '#1f2937', color: '#64748b' }}
+                      >
+                        Skipped
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-right tabular-nums" style={{ color: '#94a3b8' }}>
+                    {fmtDuration(section.plannedSeconds)}
+                  </span>
+                  <span className="text-right tabular-nums" style={{ color: '#94a3b8' }}>
+                    {section.skipped ? '—' : fmtDuration(section.actualSeconds)}
+                  </span>
+                  <span className="text-right text-xs font-medium tabular-nums" style={{ color: rowColor }}>
+                    {section.skipped ? '—' : secDiff}
+                  </span>
                 </div>
-
-                {/* Planned */}
-                <span className="text-right tabular-nums" style={{ color: '#94a3b8' }}>
-                  {fmtDuration(section.plannedSeconds)}
-                </span>
-
-                {/* Actual */}
-                <span className="text-right tabular-nums" style={{ color: '#94a3b8' }}>
-                  {section.skipped ? '—' : fmtDuration(section.actualSeconds)}
-                </span>
-
-                {/* Diff */}
-                <span className="text-right text-xs font-medium tabular-nums" style={{ color: rowColor }}>
-                  {section.skipped ? '—' : secDiff}
-                </span>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
 
         {/* ── Save status ─────────────────────────────────────────── */}
         {saveState === 'saved' && (
