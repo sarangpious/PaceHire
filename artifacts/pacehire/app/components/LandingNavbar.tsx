@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import GoogleSignInButton from './GoogleSignInButton'
 
 export default function LandingNavbar() {
@@ -27,9 +28,9 @@ export default function LandingNavbar() {
           : { backgroundColor: 'transparent' }
       }
     >
-      <span className="text-xl font-bold" style={{ color: 'var(--color-brand)' }}>
+      <Link href="/" className="text-xl font-bold" style={{ color: 'var(--color-brand)' }}>
         PaceHire
-      </span>
+      </Link>
       <GoogleSignInButton variant="outline" />
     </header>
   )

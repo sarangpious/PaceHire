@@ -39,7 +39,7 @@ export default function DashboardHeader({ email, avatarUrl, fullName }: Props) {
       }}
     >
       <Link
-        href="/dashboard"
+        href="/"
         className="text-lg font-bold"
         style={{ color: 'var(--color-brand)' }}
       >

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { CheckCircle2, RotateCcw, ArrowLeft, Pencil } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -70,64 +70,108 @@ function fmtDate(iso: string): string {
 
 export default function SummaryPage() {
   const params = useParams()
-  const router = useRouter()
   const templateId = params.templateId as string
 
   const [data, setData] = useState<SessionResult | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [loading, setLoading] = useState(true)
   const savedRef = useRef(false)
 
-  // ── Load from sessionStorage and auto-save ─────────────────────
   useEffect(() => {
+    // 1. Try sessionStorage (just-finished session)
     let result: SessionResult | null = null
     try {
       const raw = sessionStorage.getItem('pacehire_session_result')
       if (raw) result = JSON.parse(raw)
     } catch {}
 
-    if (!result) return
-    setData(result)
+    if (result) {
+      setData(result)
+      setLoading(false)
 
-    if (savedRef.current) return
-    savedRef.current = true
+      // Auto-save to Supabase once
+      if (savedRef.current) return
+      savedRef.current = true
 
-    // Check auth, then save
+      ;(async () => {
+        setSaveState('saving')
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+          setSaveState('guest')
+          return
+        }
+
+        const { error } = await supabase.from('sessions').insert({
+          user_id: user.id,
+          template_id: result!.templateId === 'demo' ? null : result!.templateId,
+          template_snapshot: {
+            name: result!.templateName,
+            sections: result!.sections,
+          },
+          started_at: result!.startedAt,
+          ended_at: new Date().toISOString(),
+          planned_duration: result!.plannedDuration,
+          actual_duration: result!.actualDuration,
+          section_results: result!.sections,
+        })
+
+        if (error) {
+          setSaveState('error')
+          return
+        }
+
+        try { sessionStorage.removeItem('pacehire_session_result') } catch {}
+        setSaveState('saved')
+      })()
+      return
+    }
+
+    // 2. sessionStorage is empty — load historical session from Supabase by session ID
     ;(async () => {
-      setSaveState('saving')
       const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: session } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('id', templateId)
+        .single()
 
-      if (!user) {
-        setSaveState('guest')
+      if (!session) {
+        setLoading(false)
         return
       }
 
-      const { error } = await supabase.from('sessions').insert({
-        user_id: user.id,
-        template_id: result!.templateId === 'demo' ? null : result!.templateId,
-        template_snapshot: {
-          name: result!.templateName,
-          sections: result!.sections,
-        },
-        started_at: result!.startedAt,
-        ended_at: new Date().toISOString(),
-        planned_duration: result!.plannedDuration,
-        actual_duration: result!.actualDuration,
-        section_results: result!.sections,
-      })
-
-      if (error) {
-        setSaveState('error')
-        return
+      type Snapshot = { name?: string } | null
+      const snapshot = session.template_snapshot as Snapshot
+      const historical: SessionResult = {
+        templateId: session.template_id ?? templateId,
+        templateName: snapshot?.name ?? 'Unknown Template',
+        plannedDuration: session.planned_duration ?? 0,
+        actualDuration: session.actual_duration ?? 0,
+        startedAt: session.started_at ?? session.ended_at ?? new Date().toISOString(),
+        sections: (session.section_results as SectionEntry[]) ?? [],
       }
-
-      // Clear sessionStorage only after a successful save
-      try { sessionStorage.removeItem('pacehire_session_result') } catch {}
-      setSaveState('saved')
+      setData(historical)
+      setSaveState('saved') // already persisted
+      setLoading(false)
     })()
-  }, [])
+  }, [templateId])
+
+  // ── Loading ────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div
+        className="flex min-h-screen items-center justify-center"
+        style={{ backgroundColor: '#0a0f1e' }}
+      >
+        <div
+          className="h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+          style={{ borderColor: '#1A56DB', borderTopColor: 'transparent' }}
+        />
+      </div>
+    )
+  }
 
   // ── Guard: no data ─────────────────────────────────────────────
   if (!data) {
@@ -318,7 +362,7 @@ export default function SummaryPage() {
         {/* ── Actions ─────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href={`/session/${templateId}`}
+            href={`/session/${data.templateId}`}
             className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors"
             style={{ borderColor: '#1e3a5f', color: '#94a3b8' }}
           >
@@ -328,7 +372,7 @@ export default function SummaryPage() {
 
           {!isDemo && saveState !== 'guest' && (
             <Link
-              href={`/dashboard/templates/${templateId}/edit`}
+              href={`/dashboard/templates/${data.templateId}/edit`}
               className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors"
               style={{ borderColor: '#1e3a5f', color: '#94a3b8' }}
             >
@@ -358,15 +402,8 @@ export default function SummaryPage() {
 // ── Guest sign-in button ───────────────────────────────────────────────────
 
 function GuestSignInButton({ variant = 'filled' }: { variant?: 'filled' | 'subtle' }) {
-  async function handleSignIn() {
-    const supabase = createClient()
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://a8f9dcf2-b670-42fe-9851-a94a06d61268-00-gko79s5rzbvn.sisko.replit.dev'
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${siteUrl}/auth/callback`,
-      },
-    })
+  function handleSignIn() {
+    window.location.href = '/auth/signin'
   }
 
   if (variant === 'subtle') {

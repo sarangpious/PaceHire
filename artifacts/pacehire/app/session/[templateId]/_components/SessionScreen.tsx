@@ -11,6 +11,7 @@ import {
   Play,
   SkipForward,
   Plus,
+  X,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -237,6 +238,42 @@ export default function SessionScreen({ template }: Props) {
     if (isOverrun) beepFiredRef.current = false
   }
 
+  function exitEarly() {
+    if (!confirm('End this session early? Progress will be saved.')) return
+
+    const elapsed = sectionTotalSeconds - Math.max(0, secondsRemaining)
+    const currentResult: SectionResult = {
+      section_id: currentSection.id,
+      name: currentSection.name,
+      planned_seconds: sectionTotalSeconds,
+      actual_seconds: Math.max(0, elapsed),
+      skipped: false,
+    }
+    const allResults = [...sectionResults, currentResult]
+    const totalActualSeconds = allResults.reduce((sum, r) => sum + r.actual_seconds, 0)
+
+    const payload = {
+      templateId: template.id,
+      templateName: template.name,
+      plannedDuration: template.total_duration ?? 0,
+      actualDuration: totalActualSeconds,
+      startedAt: sessionStartRef.current,
+      sections: allResults.map(r => ({
+        id: r.section_id,
+        name: r.name,
+        plannedSeconds: r.planned_seconds,
+        actualSeconds: r.actual_seconds,
+        skipped: r.skipped,
+      })),
+    }
+
+    try {
+      sessionStorage.setItem('pacehire_session_result', JSON.stringify(payload))
+    } catch {}
+
+    router.push(`/session/${template.id}/summary`)
+  }
+
   // ── Render ───────────────────────────────────────────────────────
 
   return (
@@ -255,9 +292,22 @@ export default function SessionScreen({ template }: Props) {
 
       {/* ── Top bar ─────────────────────────────────────────────── */}
       <header className="relative z-10 flex items-center justify-between px-6 py-4">
-        <span className="max-w-xs truncate text-sm font-medium" style={{ color: '#94a3b8' }}>
-          {template.name}
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Exit session */}
+          <button
+            onClick={exitEarly}
+            className="rounded p-1.5"
+            style={{ color: '#64748b' }}
+            title="End session early"
+            onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+            onMouseLeave={e => (e.currentTarget.style.color = '#64748b')}
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <span className="max-w-xs truncate text-sm font-medium" style={{ color: '#94a3b8' }}>
+            {template.name}
+          </span>
+        </div>
 
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm tabular-nums" style={{ color: '#94a3b8' }}>

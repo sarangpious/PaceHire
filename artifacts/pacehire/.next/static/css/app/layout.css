@@ -1046,6 +1046,15 @@ input:where([type='file']):focus {
 .animate-pulse {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
+@keyframes spin {
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
 .cursor-grab {
   cursor: grab;
 }
@@ -1143,6 +1152,9 @@ input:where([type='file']):focus {
 .border {
   border-width: 1px;
 }
+.border-2 {
+  border-width: 2px;
+}
 .border-b {
   border-bottom-width: 1px;
 }
@@ -1158,6 +1170,9 @@ input:where([type='file']):focus {
 .border-blue-600 {
   --tw-border-opacity: 1;
   border-color: rgb(37 99 235 / var(--tw-border-opacity, 1));
+}
+.border-t-transparent {
+  border-top-color: transparent;
 }
 .bg-blue-600 {
   --tw-bg-opacity: 1;
