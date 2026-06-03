@@ -23,15 +23,11 @@ export async function GET() {
     provider: 'google',
     options: {
       redirectTo: `${SITE_URL}/auth/callback`,
-      skipBrowserRedirect: false,
     },
   })
 
-  console.log('[signin] data:', data)
-  console.log('[signin] error:', error)
-
   if (error || !data.url) {
-    return NextResponse.redirect(`${SITE_URL}/?error=auth&detail=${encodeURIComponent(error?.message || 'no url')}`)
+    return NextResponse.redirect(`${SITE_URL}/?error=auth`)
   }
 
   return NextResponse.redirect(data.url)

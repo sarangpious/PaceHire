@@ -1,0 +1,2 @@
+- [Supabase credentials in Replit](supabase-replit-env.md) — process.env NEXT_PUBLIC_* vars don't reach server-side code; hardcode credentials in all Supabase files.
+- [Auth flow architecture](auth-flow.md) — sign-in uses a server-side /auth/signin route to avoid iframe redirect issues; OAuth is server-initiated not client-initiated.
